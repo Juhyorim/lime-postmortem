@@ -141,20 +141,21 @@ def collect(fetcher: Fetcher, state: CrawlState, paths: RawPaths, limit: int | N
         else:
             state.record_failure(url, result)
             counts["failed"] += 1
+            will_retry = not result.permanent and row["attempts"] + 1 < MAX_ATTEMPTS
             log.info("[%d/%d] 실패 %s%s %s", i, len(rows), result.reason,
-                     "" if result.permanent else " (재시도 예정)", url)
+                     " (재시도 예정)" if will_retry else "", url)
     return counts
 
 
 def print_report(state: CrawlState) -> None:
-    r = state.report()
+    r = state.report(MAX_ATTEMPTS)
     rate = f"{r['success_rate']:.0%}" if r["success_rate"] is not None else "-"
     print(f"주 링크 {r['primary_total']}개  상태별 {r['by_status']}  수집 성공률 {rate}")
     print(f"본문 추출: {r['extract']}")
     if r["fail_reasons"]:
         print("실패 사유:")
         for row in r["fail_reasons"]:
-            print(f"  {row['n']:4d}  {row['reason']}{'' if row['permanent'] else ' (재시도 예정)'}")
+            print(f"  {row['n']:4d}  {row['reason']}{' (재시도 예정)' if row['will_retry'] else ''}")
         print("실패 많은 호스트:")
         for row in r["fail_hosts"]:
             print(f"  {row['n']:4d}  {row['host']}")

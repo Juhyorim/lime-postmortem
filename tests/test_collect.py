@@ -3,7 +3,7 @@ import json
 
 import httpx
 
-from ingest.collect import RawPaths, collect
+from ingest.collect import MAX_ATTEMPTS, RawPaths, collect
 from ingest.extract import MIN_TEXT_CHARS, extract
 from ingest.fetch import Fetcher
 from ingest.sources import SourceEntry
@@ -115,6 +115,20 @@ def test_transient_failure_retried_up_to_limit(tmp_path):
     assert (row["attempts"], row["reason"], row["permanent"]) == (3, "http_503", 0)
 
 
+def test_report_retry_label(tmp_path):
+    """일시 실패라도 시도 횟수를 다 쓰면 '재시도 예정'으로 표시하지 않는다."""
+    server, fetcher, paths, state = setup(tmp_path, {"/flaky": httpx.Response(503)})
+    state.upsert_entries([entry("https://a.example/flaky"), entry("https://a.example/gone")])
+    collect(fetcher, state, paths, None, False)
+    reasons = {r["reason"]: r["will_retry"] for r in state.report(MAX_ATTEMPTS)["fail_reasons"]}
+    assert reasons == {"http_503": 1, "http_404": 0}
+
+    for _ in range(MAX_ATTEMPTS):
+        collect(fetcher, state, paths, None, False)
+    reasons = {r["reason"]: r["will_retry"] for r in state.report(MAX_ATTEMPTS)["fail_reasons"]}
+    assert reasons == {"http_503": 0, "http_404": 0}
+
+
 def test_transient_then_success(tmp_path):
     server, fetcher, paths, state = setup(tmp_path, {"/post": httpx.Response(503)})
     state.upsert_entries([entry("https://a.example/post")])
@@ -173,7 +187,7 @@ def test_report_success_rate(tmp_path):
     server, fetcher, paths, state = setup(tmp_path, {"/ok": html()})
     state.upsert_entries([entry("https://a.example/ok"), entry("https://a.example/missing")])
     collect(fetcher, state, paths, None, False)
-    r = state.report()
+    r = state.report(MAX_ATTEMPTS)
     assert r["success_rate"] == 0.5
     assert r["fail_reasons"][0]["reason"] == "http_404"
     assert r["fail_hosts"][0]["host"] == "a.example"

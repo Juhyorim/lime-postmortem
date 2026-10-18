@@ -128,7 +128,7 @@ class CrawlState:
         )
         self.conn.commit()
 
-    def report(self) -> dict:
+    def report(self, max_attempts: int) -> dict:
         q = self.conn.execute
         total = q("SELECT COUNT(*) FROM fetches WHERE is_secondary = 0").fetchone()[0]
         by_status = dict(q("SELECT status, COUNT(*) FROM fetches WHERE is_secondary = 0 GROUP BY status").fetchall())
@@ -140,9 +140,11 @@ class CrawlState:
             "extract": dict(q(
                 "SELECT COALESCE(extract_status, '-'), COUNT(*) FROM fetches WHERE status = 'ok' GROUP BY 1"
             ).fetchall()),
+            # will_retry: 다음 실행에서 실제로 다시 요청하는지 (일시 실패라도 시도 횟수를 다 쓰면 0)
             "fail_reasons": q(
-                "SELECT reason, permanent, COUNT(*) AS n FROM fetches WHERE status = 'failed' "
-                "GROUP BY reason, permanent ORDER BY n DESC"
+                "SELECT reason, (permanent = 0 AND attempts < ?) AS will_retry, COUNT(*) AS n "
+                "FROM fetches WHERE status = 'failed' GROUP BY reason, will_retry ORDER BY n DESC",
+                (max_attempts,),
             ).fetchall(),
             "fail_hosts": q(
                 "SELECT substr(url, instr(url, '://') + 3, instr(substr(url, instr(url, '://') + 3), '/') - 1) AS host, "
