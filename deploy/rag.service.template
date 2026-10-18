@@ -1,0 +1,20 @@
+[Unit]
+Description=Postmortem RAG API
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=__USER__
+WorkingDirectory=__PROJECT_DIR__
+ExecStart=/usr/bin/env bash __PROJECT_DIR__/scripts/run_api.sh
+Restart=always
+RestartSec=5
+# 2GB 서버 보호: API 프로세스가 메모리를 과하게 쓰면 이 프로세스만 정리되게 한다.
+MemoryMax=900M
+# 기본 보안 옵션
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

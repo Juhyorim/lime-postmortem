@@ -1,0 +1,16 @@
+# /etc/caddy/Caddyfile 에 복사해서 사용.
+# 바꿔야 할 곳 3군데:  이메일, 도메인, basic_auth 의 해시
+#   해시 만들기:  caddy hash-password   (비밀번호 입력 → 출력된 $2a$... 문자열을 붙여넣기)
+{
+	email you@example.com
+}
+
+rag.example.com {
+	encode zstd gzip
+
+	basic_auth {
+		lime REPLACE_WITH_HASH
+	}
+
+	reverse_proxy 127.0.0.1:8000
+}

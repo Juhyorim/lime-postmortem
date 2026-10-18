@@ -1,0 +1,19 @@
+# 설정 파일은 레포 밖(~/.config/postmortem-rag/)에 둔다.
+# 아래는 실수로 레포 안에 생겼을 때를 대비한 안전망.
+.env
+.env.*
+rag.env
+secret-patterns
+*.pem
+*.key
+deploy/Caddyfile
+
+# Python / 도구
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# 데이터 (크고, 재생성 가능하거나 서버 전용)
+data/*
+!data/.gitkeep
