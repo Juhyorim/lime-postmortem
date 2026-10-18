@@ -20,6 +20,8 @@ class Settings:
     llm_provider: str
     llm_model: str
     llm_api_key_set: bool
+    crawl_contact: str
+    crawl_delay_sec: float
 
 
 def load_settings() -> Settings:
@@ -32,4 +34,7 @@ def load_settings() -> Settings:
         llm_model=os.getenv("LLM_MODEL", ""),
         # 키 값 자체는 어디에도 노출하지 않고, 설정 여부만 기록한다.
         llm_api_key_set=bool(os.getenv("LLM_API_KEY")),
+        # 수집기 User-Agent에 붙는 연락처 (실제 값은 rag.env에만)
+        crawl_contact=os.getenv("CRAWL_CONTACT", ""),
+        crawl_delay_sec=float(os.getenv("CRAWL_DELAY_SEC") or 3.0),
     )

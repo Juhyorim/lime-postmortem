@@ -8,7 +8,8 @@
 ## 현재 상태
 
 - 1단계 완료: FastAPI `/health`, systemd 서비스, Caddy(HTTPS + basic_auth + reverse_proxy)
-- **다음: 2단계 수집기** (`docs/PLAN.md`의 2단계 참고)
+- 2단계 완료: 수집기 `ingest/` (`python -m ingest.collect`, cron용 `scripts/run_collect.sh`)
+- **다음: 3단계 인덱서** (`docs/PLAN.md`의 3단계 참고)
 
 ## 하드 제약 (깨면 안 되는 것)
 
@@ -17,7 +18,7 @@
 - **systemd 의존 금지**: proot에는 systemd가 없다. 앱 실행은 `scripts/run_api.sh` 하나로, systemd는 그 스크립트만 호출한다. 배치는 **cron**으로 실행한다 (systemd timer 쓰지 않음).
 - 의존성은 **ARM64(aarch64) 리눅스 wheel이 있는 패키지**만 쓴다. 새 패키지를 추가할 때 확인한다.
 - uvicorn **워커 1개** 고정 (임베딩 모델이 워커마다 로드됨).
-- 데이터는 파일로만: `data/raw/`(원문), `data/cache.db`(임베딩 캐시), `data/index.db`(검색 인덱스). 별도 DB 서버를 띄우지 않는다.
+- 데이터는 파일로만: `data/raw/`(원문, 정제 텍스트, 수집 상태 `crawl.db`), `data/cache.db`(임베딩 캐시), `data/index.db`(검색 인덱스). 별도 DB 서버를 띄우지 않는다.
 - 앱은 `127.0.0.1:8000`에만 바인딩. 외부 노출은 Caddy(AWS) / Cloudflare Tunnel(폰)이 담당.
 - 비밀값은 **레포 밖** `~/.config/postmortem-rag/rag.env`(권한 600)에만. 코드, 로그, 응답에 키를 노출하지 않는다.
 
@@ -45,6 +46,7 @@
 
 - 테스트: `uv run pytest -q`
 - 로컬 실행: `uv run uvicorn app.main:app --reload` (또는 `bash scripts/run_api.sh`)
+- 수집: `uv run python -m ingest.collect [--limit N | --dry-run | --extract-only | --report]`
 - 서버 반영 후: `sudo systemctl restart rag`, 로그 `journalctl -u rag -f`
 
 ## 작업 방식

@@ -38,12 +38,13 @@ API 프로세스(상시)와 배치 프로세스(새벽에만)는 분리한다.
 
 - [x] **1단계. 프로젝트 기반과 /health**
   - 완료 기준: 인증 없이 `/health` → 401, 인증하면 `{"status":"ok"}`
-- [ ] **2단계. 수집기**
-  - 출처: 공개 포스트모템 모음(예: GitHub danluu/post-mortems)의 링크 목록부터. (출처 최종 확정 필요)
-  - 원문 HTML을 `data/raw/`에 저장, 수집 상태 기록(URL, 받은 날짜, 성공/실패, 사유)
-  - 이미 받은 문서는 다시 받지 않음, 요청 간 간격, robots.txt 준수, 깨진 링크는 실패로 기록
-  - 본문 텍스트만 추출 (trafilatura 등)
-  - 완료 기준: 문서 수십 개가 정제 텍스트로 저장되고 수집 성공률이 확인됨
+- [x] **2단계. 수집기** (`ingest/`, 실행 `scripts/run_collect.sh`)
+  - 출처: danluu/post-mortems README의 주 링크 240개 (`Other lists`, `Analysis`, `Contributors` 제외). 설명 안의 보조 링크는 기본 제외(`--include-secondary`)
+  - 원문: `data/raw/html/<doc_id>.html.gz`, 정제 텍스트: `data/raw/text/<doc_id>.json`, 상태: `data/raw/crawl.db`, README 스냅샷: `data/raw/sources/`
+  - 성공한 URL과 영구 실패(404, robots 거부, PDF 등)는 재요청하지 않음. 일시 실패(5xx, 타임아웃)는 최대 3회
+  - 같은 호스트 3초 간격(archive.org 5초, Crawl-delay 우선), 리다이렉트·meta refresh 홉마다 robots.txt 확인, Wayback은 `id_` 원본으로
+  - 결과(로컬 첫 50개): 수집 49/50(98%, 실패 1은 robots 거부), 본문 추출 ok 47, too_short 2(JS로 그리는 상태 페이지)
+  - 남은 것: PDF·JS 상태 페이지 처리, 죽은 링크의 Wayback 대체 → 9단계
 - [ ] **3단계. 인덱서 배치**
   - 청킹: 제목(heading) 기준 섹션 분할, 긴 섹션은 300~400 토큰 + 약간 겹침. 청크 앞에 "문서 제목 + 섹션명"
   - 식별자 추출: 정규식(A101, ORA-00600, HTTP 503, CVE-…, OOMKilled 등). 패턴은 설정 파일로
@@ -74,5 +75,5 @@ API 프로세스(상시)와 배치 프로세스(새벽에만)는 분리한다.
 ## 미정 사항
 
 1. LLM API 제공자와 키 (6단계 전까지)
-2. 데이터 출처 확정 (2단계 시작 시)
+2. ~~데이터 출처 확정~~ → danluu/post-mortems (2단계)
 3. 공개 범위: 혼자 쓰면 basic_auth로 충분, 공유하면 재검토
